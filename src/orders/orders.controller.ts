@@ -1,31 +1,42 @@
 import { Controller, ParseUUIDPipe } from '@nestjs/common';
-import { MessagePattern, Payload } from '@nestjs/microservices';
+import { EventPattern, MessagePattern, Payload } from '@nestjs/microservices';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderPaginationDto } from './dto/order-pagination.dto';
 import { StatusDto } from './dto/status.dto';
+import { PaidOrderDto } from './dto/paid-order.dto';
 
 @Controller()
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   @MessagePattern('createOrder')
-  create(@Payload() createOrderDto: CreateOrderDto) {
-    return this.ordersService.create(createOrderDto);
+  async create(@Payload() createOrderDto: CreateOrderDto) {
+    const order = await this.ordersService.create(createOrderDto);
+    const paymentSession = await this.ordersService.createPaymentSession(order);
+    return {
+      order,
+      paymentSession,
+    };
   }
 
   @MessagePattern('findAllOrders')
-  findAll(@Payload() orderPaginationDto: OrderPaginationDto) {
-    return this.ordersService.findAll(orderPaginationDto);
+  async findAll(@Payload() orderPaginationDto: OrderPaginationDto) {
+    return await this.ordersService.findAll(orderPaginationDto);
   }
 
   @MessagePattern('findOneOrder')
-  findOne(@Payload('id', ParseUUIDPipe) id: string) {
-    return this.ordersService.findOne(id);
+  async findOne(@Payload('id', ParseUUIDPipe) id: string) {
+    return await this.ordersService.findOne(id);
   }
 
   @MessagePattern('changeOrderStatus')
-  changeOrderStatus(@Payload() statusDto: StatusDto) {
-    return this.ordersService.changeOrderStatus(statusDto);
+  async changeOrderStatus(@Payload() statusDto: StatusDto) {
+    return await this.ordersService.changeOrderStatus(statusDto);
+  }
+
+  @EventPattern('payment.suceeded')
+  async markOrderAsPaid(@Payload() paidOrderDto: PaidOrderDto) {
+    await this.ordersService.markOrderAsPaid(paidOrderDto);
   }
 }
