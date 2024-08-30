@@ -1,20 +1,22 @@
 steps:
-  - name: "gcr.io/cloud-builders/docker"
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args:
+      - -c
+      - |
+        docker build -t us-east1-docker.pkg.dev/microservices-ecommerce-433602/ecommerce-image-registry/orders-ms -f dockerfile.prod --platform=linux/amd64 --build-arg DATABASE_URL=$$DATABASE_URL .
+    secretEnv: ['DATABASE_URL']
+
+  - name: 'gcr.io/cloud-builders/docker'
     args:
       [
-        "build",
-        "-t",
-        "us-east1-docker.pkg.dev/microservices-ecommerce-433602/ecommerce-image-registry/orders-ms",
-        "-f",
-        "Dockerfile.prod",
-        "--platform=linux/amd64",
-        ".",
+        'push',
+        'us-east1-docker.pkg.dev/microservices-ecommerce-433602/ecommerce-image-registry/orders-ms',
       ]
-  - name: "gcr.io/cloud-builders/docker"
-    args:
-      [
-        "push",
-        "us-east1-docker.pkg.dev/microservices-ecommerce-433602/ecommerce-image-registry/orders-ms",
-      ]
+
+availableSecrets:
+  secretManager:
+    - versionName: projects/385201845886/secrets/database_url/versions/1
+      env: 'DATABASE_URL'
 options:
   logging: CLOUD_LOGGING_ONLY
